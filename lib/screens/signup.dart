@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:else_revamp/screens/home.dart';
+import 'package:else_revamp/screens/login.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -22,6 +23,24 @@ class _SignUpState extends State<SignUp> {
   TextEditingController pnumberController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
   TextEditingController confirmPasswordController = TextEditingController();
+
+  getDialog(errorMessage) {
+    return showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            content: Text(errorMessage),
+            actions: [
+              TextButton(
+                  onPressed: () {
+                    Navigator.pop(context);
+                  },
+                  child: const Text('CLOSE'))
+            ],
+          );
+        });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -250,28 +269,7 @@ class _SignUpState extends State<SignUp> {
                             password.isEmpty ||
                             confirmPassword.isEmpty) {
                           //Pop up dialog when fields are not filled out.
-                          showDialog(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  title: Text(
-                                    'Complete the fields to proceed',
-                                    style: GoogleFonts.fanwoodText(
-                                        color: Colors.black, fontSize: 30),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: Text(
-                                        'CLOSE',
-                                        style: GoogleFonts.fanwoodText(),
-                                      ),
-                                    )
-                                  ],
-                                );
-                              });
+                          getDialog('Complete the fields to proceed');
                         } else if (pnumber.length != 11) {
                           showDialog(
                               context: context,
@@ -296,28 +294,7 @@ class _SignUpState extends State<SignUp> {
                                 );
                               });
                         } else if (password != confirmPassword) {
-                          showDialog(
-                              context: context,
-                              builder: (context) {
-                                return AlertDialog(
-                                  title: Text(
-                                    "Password don't match",
-                                    style: GoogleFonts.fanwoodText(
-                                        color: Colors.black, fontSize: 30),
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(context);
-                                      },
-                                      child: Text(
-                                        'CLOSE',
-                                        style: GoogleFonts.fanwoodText(),
-                                      ),
-                                    )
-                                  ],
-                                );
-                              });
+                          getDialog("Passwords don't match");
                         } else if (hasInternet == true) {
                           //proceeds to create user account if there is internet and notifies the user
                           //if creating the account is successful or has failed.
@@ -347,8 +324,7 @@ class _SignUpState extends State<SignUp> {
                                 barrierDismissible: false,
                                 builder: (context) {
                                   return AlertDialog(
-                                    title: Text('Account Created!',
-                                        style: GoogleFonts.fanwoodText()),
+                                    title: const Text('Account Created!'),
                                     actions: [
                                       TextButton(
                                         onPressed: () {
@@ -363,40 +339,38 @@ class _SignUpState extends State<SignUp> {
                                     ],
                                   );
                                 });
-                          } catch (error) {
-                            return showDialog(
-                                context: context,
-                                builder: (context) {
-                                  return AlertDialog(
-                                    title: Text('Error',
-                                        style: GoogleFonts.fanwoodText()),
-                                    content: Text('$error'),
-                                    actions: [
-                                      TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(context);
-                                          },
-                                          child: Text('CLOSE',
-                                              style: GoogleFonts.fanwoodText()))
-                                    ],
-                                  );
-                                });
+                          } on FirebaseAuthException catch (error) {
+                            print('Error Code: ${error.code}');
+                            switch (error.code) {
+                              case ('email-already-in-use'):
+                                getDialog('Email already used.');
+                                break;
+                              case ('weak-password'):
+                                getDialog(
+                                    'Password too weak (Atleast 6 characters).');
+                                break;
+                              case ('invalid-email'):
+                                getDialog('Email is not valid.');
+                                break;
+                              default:
+                                getDialog('Failed to create account.');
+                                break;
+                            }
                           }
                         } else {
+                          getDialog('NO INTERNET');
                           showDialog(
                               context: context,
-                              barrierDismissible: false,
+                              barrierDismissible: true,
                               builder: (context) {
                                 return AlertDialog(
-                                  title: Text('NO INTERNET',
-                                      style: GoogleFonts.fanwoodText()),
+                                  title: const Text('NO INTERNET'),
                                   actions: [
                                     TextButton(
                                         onPressed: () {
                                           Navigator.pop(context);
                                         },
-                                        child: Text('CLOSE',
-                                            style: GoogleFonts.fanwoodText()))
+                                        child: const Text('CLOSE'))
                                   ],
                                 );
                               });
@@ -412,7 +386,9 @@ class _SignUpState extends State<SignUp> {
               alignment: Alignment.center,
               child: TextButton(
                   onPressed: () {
-                    Get.back();
+                    //Get.back();
+                    Navigator.of(context).pushReplacement(
+                        MaterialPageRoute(builder: (context) => const LogIn()));
                   },
                   child: Text(
                     "Already have an account? Login",

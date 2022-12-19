@@ -17,6 +17,7 @@ class _LogInState extends State<LogIn> {
   //Can be used to manipulate text inputs and also retreive user inputs
   TextEditingController usernameController = TextEditingController();
   TextEditingController passwordController = TextEditingController();
+  String messagePrompt = '';
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -91,15 +92,26 @@ class _LogInState extends State<LogIn> {
                     hintStyle: GoogleFonts.fanwoodText()),
               ),
             ),
-            Container(
-              padding: const EdgeInsets.only(right: 36, top: 1, bottom: 10),
-              alignment: Alignment.topRight,
-              child: TextButton(
-                  onPressed: () {},
-                  child: Text('Forgot password?',
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              children: [
+                Container(
+                  padding: const EdgeInsets.only(left: 36, top: 1, bottom: 10),
+                  child: Text(messagePrompt,
                       style: GoogleFonts.fanwoodText(
-                          fontSize: 15,
-                          color: const Color.fromARGB(250, 52, 73, 94)))),
+                          fontSize: 18, color: Colors.redAccent)),
+                ),
+                Container(
+                  padding: const EdgeInsets.only(right: 36, top: 1, bottom: 10),
+                  alignment: Alignment.topRight,
+                  child: TextButton(
+                      onPressed: () {},
+                      child: Text('Forgot password?',
+                          style: GoogleFonts.fanwoodText(
+                              fontSize: 15,
+                              color: const Color.fromARGB(250, 52, 73, 94)))),
+                ),
+              ],
             ),
             Container(
               alignment: Alignment.center,
@@ -123,8 +135,11 @@ class _LogInState extends State<LogIn> {
                       await InternetConnectionChecker()
                           .hasConnection; //connection, returns true if there is
                   if (username.isEmpty || password.isEmpty) {
+                    setState(() {
+                      messagePrompt = 'Incomplete Fields';
+                    });
                     //popup dialog that notifies users when there are fields not filled out
-                    showDialog(
+                    /*showDialog(
                         context: context,
                         builder: (context) {
                           return AlertDialog(
@@ -145,7 +160,7 @@ class _LogInState extends State<LogIn> {
                               )
                             ],
                           );
-                        });
+                        });*/
                   } else if (hasInternet == true) {
                     //executes signing in of users if there is internet connection
                     //then shows popup error if they failed to sign in
@@ -155,8 +170,61 @@ class _LogInState extends State<LogIn> {
                       //Get.offAndToNamed('/home');
                       Navigator.of(context).pushReplacement(MaterialPageRoute(
                           builder: (context) => const Home()));
-                    } catch (error) {
-                      return showDialog(
+                    } on FirebaseAuthException catch (error) {
+                      print('Error code: ${error.code}');
+                      switch (error.code) {
+                        case ('wrong-password'):
+                          setState(() {
+                            messagePrompt = 'Incorrect Email/Password';
+                          });
+                          break;
+                        case ('user-not-found'):
+                          setState(() {
+                            messagePrompt = 'No user found';
+                          });
+                          break;
+                        case ('user-disabled'):
+                          return showDialog(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                  title: Text('Ooops!',
+                                      style: GoogleFonts.fanwoodText(
+                                          color: Colors.red)),
+                                  content: const Text('This user is disabled.'),
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                        },
+                                        child: Text('CLOSE',
+                                            style: GoogleFonts.fanwoodText()))
+                                  ],
+                                );
+                              });
+                        case ('too-many-requests'):
+                          return showDialog(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                  title: Text('Warning!',
+                                      style: GoogleFonts.fanwoodText(
+                                          color: Colors.red)),
+                                  content: const Text(
+                                      'You have sent too many failed requests. Please try again later.'),
+                                  actions: [
+                                    TextButton(
+                                        onPressed: () {
+                                          Navigator.pop(context);
+                                        },
+                                        child: Text('CLOSE',
+                                            style: GoogleFonts.fanwoodText()))
+                                  ],
+                                );
+                              });
+                      }
+
+                      /*return showDialog(
                           context: context,
                           builder: (context) {
                             return AlertDialog(
@@ -173,7 +241,7 @@ class _LogInState extends State<LogIn> {
                                         style: GoogleFonts.fanwoodText()))
                               ],
                             );
-                          });
+                          });*/
                     }
                   } else {
                     showDialog(
