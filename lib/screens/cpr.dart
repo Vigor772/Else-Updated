@@ -3,6 +3,7 @@ import 'dart:collection';
 import 'dart:math';
 import 'dart:developer' as dev;
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter_ripple/flutter_ripple.dart';
 import 'package:url_launcher/url_launcher.dart' as UrlLauncher;
 import 'package:audioplayers/audioplayers.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
@@ -23,23 +24,24 @@ class CprProvider extends ChangeNotifier {
   final Stopwatch countSuccessCpr;
   PushStatus _status;
   String currentTime;
+  List checkStream = [];
   //variable to hold the value of success cpr count
   String currentSuccessCpr;
   int lastRegisteredHalfPush = 0;
   late StreamSubscription _subscription;
   double maxInEpoch = 0;
   double minInEpoch = 0;
-  double lastMaxAccleration = 0;
+  double lastMaxAccleration = 0; //default value set 0
   int count = 0;
-  double threshold = 1;
-  int minimumRecognizableDuration = 100;
+  double threshold = 0.3; //default value 1
+  int minimumRecognizableDuration = 100; //default value 100
   double x = 0, y = 0, z = 0;
   double g = 9.8;
   Queue<int> timeBetweenHalfPushes = Queue<int>();
-  int movingAvgWindow = 5;
-  int maximumRecognizableDuration = 2000;
-  int standardDuration = 500;
-  int standardAcceleration = 5;
+  int movingAvgWindow = 5; //default value 5
+  int maximumRecognizableDuration = 5000; //default value 2000
+  int standardDuration = 500; //default value 500
+  int standardAcceleration = 5; //default value 5
   String log = '';
   int timestamp = 0;
   final audioPlayer = AudioPlayer();
@@ -51,6 +53,7 @@ class CprProvider extends ChangeNotifier {
       timeBetweenHalfPushes.reduce((value, element) => value + element) /
       timeBetweenHalfPushes.length *
       2;
+  List get getStreamFeed => checkStream;
 
   @override
   void dispose() {
@@ -110,6 +113,7 @@ class CprProvider extends ChangeNotifier {
 
     timeBetweenHalfPushes.addFirst(0);
     _subscription = userAccelerometerEvents.listen((event) {
+      checkStream.add(event);
       dev.log('New acc event, is watch running: $isWatchRunning');
       if (!isWatchRunning) {
         return;
@@ -214,8 +218,62 @@ class Cpr extends StatelessWidget {
   }
 }
 
-class CprContent extends StatelessWidget {
+class CprContent extends StatefulWidget {
   const CprContent({Key? key}) : super(key: key);
+
+  @override
+  _CprContentState createState() => _CprContentState();
+}
+
+class _CprContentState extends State<CprContent> {
+  showHow() {
+    return showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Column(
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.close_rounded)),
+                ),
+                const Text(
+                  'Tips and Usage',
+                  style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  const SizedBox(height: 20),
+                  const Text('(1) Components',
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 20)),
+                  Image.asset('assets/images/cpr_tip3.gif', height: 150),
+                  Image.asset('assets/images/cpr_tip4.gif', height: 150),
+                  Image.asset('assets/images/cpr_tip5.gif', height: 150),
+                  const Center(
+                    child: Text('(2) Allow Permissions',
+                        style: TextStyle(
+                            fontWeight: FontWeight.bold, fontSize: 20)),
+                  ),
+                  Image.asset('assets/images/cpr_tip2.gif'),
+                  const Text('(3) Device Placement',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Image.asset('assets/images/cpr_tip1.gif'),
+                ],
+              ),
+            ),
+          );
+        });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -227,6 +285,38 @@ class CprContent extends StatelessWidget {
       appBar: AppBar(
         elevation: 0,
         backgroundColor: const Color(0xFFF7ECEC),
+        title: Transform(
+          transform: Matrix4.translationValues(110.0, 0.0, 0.0),
+          child: FlutterRipple(
+            radius: 30.0,
+            rippleColor: Colors.lightGreenAccent,
+            child: InkWell(
+              onTap: () {
+                showHow();
+              },
+              child: Tooltip(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                  gradient:
+                      LinearGradient(colors: <Color>[Colors.amber, Colors.red]),
+                ),
+                message: 'How To Use',
+                child: Container(
+                  height: 45,
+                  width: 45,
+                  decoration: const BoxDecoration(boxShadow: [
+                    BoxShadow(
+                        offset: Offset.zero, blurRadius: 3, spreadRadius: -1)
+                  ], shape: BoxShape.circle, color: Colors.greenAccent),
+                  child: const Icon(
+                    Icons.question_mark_rounded,
+                    size: 30,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         leading: IconButton(
           onPressed: () {
             if (!isRunning) {
@@ -401,11 +491,28 @@ class _StartStopButtonState extends State<StatefulWidget> {
     final isRunning = context.select<CprProvider, bool>(
       (value) => value.isWatchRunning,
     );
+    final getSensorFeed = context.watch<CprProvider>().getStreamFeed;
     if (!isRunning) {
       return ElevatedButton(
         style: ElevatedButton.styleFrom(
             backgroundColor: const Color.fromARGB(255, 52, 73, 94)),
         onPressed: () async {
+          if (getSensorFeed.isEmpty) {
+            print('Sensor Feed: $getSensorFeed');
+            showDialog(
+                context: context,
+                builder: (context) {
+                  return AlertDialog(
+                      icon: Icon(Icons.info, color: Colors.red),
+                      content: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: const [
+                          Text('Failed to access sensor or'),
+                          Text('it is not supported.'),
+                        ],
+                      ));
+                });
+          }
           context.read<CprProvider>().startWatch();
           String useruid = FirebaseAuth.instance.currentUser!.uid;
           Position coordinates = await Geolocator.getCurrentPosition();

@@ -175,7 +175,7 @@ class _LogInState extends State<LogIn> {
                       switch (error.code) {
                         case ('wrong-password'):
                           setState(() {
-                            messagePrompt = 'Incorrect Email/Password';
+                            messagePrompt = 'Wrong Password';
                           });
                           break;
                         case ('user-not-found'):
@@ -223,25 +223,6 @@ class _LogInState extends State<LogIn> {
                                 );
                               });
                       }
-
-                      /*return showDialog(
-                          context: context,
-                          builder: (context) {
-                            return AlertDialog(
-                              title: Text('Error',
-                                  style: GoogleFonts.fanwoodText(
-                                      color: Colors.red)),
-                              content: Text('$error'),
-                              actions: [
-                                TextButton(
-                                    onPressed: () {
-                                      Navigator.pop(context);
-                                    },
-                                    child: Text('CLOSE',
-                                        style: GoogleFonts.fanwoodText()))
-                              ],
-                            );
-                          });*/
                     }
                   } else {
                     showDialog(

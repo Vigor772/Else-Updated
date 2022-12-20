@@ -9,6 +9,7 @@ import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_animarker/flutter_map_marker_animation.dart';
 
 class Community extends StatefulWidget {
   const Community({super.key});
@@ -101,7 +102,7 @@ class _CommunityState extends State<Community> {
       markerList.add(marker);
       if (markerList.isNotEmpty) {
         _controller.showMarkerInfoWindow(const MarkerId('Current User'));
-        controlCompleter.complete(_controller);
+        //controlCompleter.complete(_controller);
       }
     });
   }
@@ -115,7 +116,8 @@ class _CommunityState extends State<Community> {
     return setState(() {
       for (var snapshots in emergencyMarkers.docs) {
         Map<String, dynamic> data = snapshots.data();
-        markerList.add(Marker(
+        markerList.add(RippleMarker(
+            ripple: true,
             //consumeTapEvents: false,
             infoWindow: InfoWindow(title: 'ID: ${data["uid"]}'),
             draggable: false,
@@ -154,15 +156,22 @@ class _CommunityState extends State<Community> {
                 },
                 icon: const Icon(Icons.arrow_back, color: Colors.black))),
         body: Stack(children: [
-          GoogleMap(
+          Animarker(
+            rippleRadius: 0.9,
+            curve: Curves.bounceOut,
+            duration: const Duration(seconds: 3),
+            mapId: controlCompleter.future.then<int>(((value) => value.mapId)),
             markers: Set.of(markerList),
-            initialCameraPosition: const CameraPosition(
-                tilt: 0,
-                zoom: 15,
-                target: LatLng(8.456500287014384, 124.64369875778976)),
-            onMapCreated: (GoogleMapController controller) async {
-              _controller = controller;
-            },
+            child: GoogleMap(
+              initialCameraPosition: const CameraPosition(
+                  tilt: 0,
+                  zoom: 15,
+                  target: LatLng(8.456500287014384, 124.64369875778976)),
+              onMapCreated: (GoogleMapController controller) async {
+                _controller = controller;
+                controlCompleter.complete(_controller);
+              },
+            ),
           ),
           Positioned(
               right: 12,

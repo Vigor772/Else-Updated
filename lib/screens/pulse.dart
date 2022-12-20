@@ -1,6 +1,5 @@
 import 'dart:async';
 import 'dart:isolate';
-
 import 'package:camera/camera.dart';
 import 'package:else_revamp/backend/bpm.dart';
 import 'package:else_revamp/backend/chart.dart';
@@ -8,7 +7,7 @@ import 'package:else_revamp/backend/location.dart';
 import 'package:else_revamp/backend/sms.dart';
 import 'package:else_revamp/backend/sms_location.dart';
 import 'package:else_revamp/backend/notify.dart';
-
+import 'package:flutter_ripple/flutter_ripple.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 import 'package:google_fonts/google_fonts.dart';
@@ -59,6 +58,47 @@ class _PulseRateState extends State<PulseRate>
     });
   }
 
+  showHow() {
+    return showDialog(
+        context: context,
+        builder: (context) {
+          return AlertDialog(
+            title: Column(
+              children: [
+                Align(
+                  alignment: Alignment.topRight,
+                  child: IconButton(
+                      onPressed: () {
+                        Navigator.pop(context);
+                      },
+                      icon: const Icon(Icons.close_rounded)),
+                ),
+                const Text(
+                  'How To Use',
+                  style: TextStyle(fontSize: 40, fontWeight: FontWeight.bold),
+                ),
+              ],
+            ),
+            content: SingleChildScrollView(
+              child: Column(
+                children: [
+                  const SizedBox(height: 10),
+                  const Text('(1) Press Start',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Image.asset('assets/images/bpm_how_pt1.gif', height: 150),
+                  const Text('(2) Allow Permissions',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Image.asset('assets/images/bpm_how_pt2.gif'),
+                  const Text('(3) Place finger on flashlight',
+                      style: TextStyle(fontWeight: FontWeight.bold)),
+                  Image.asset('assets/images/bpm_how_pt3.gif'),
+                ],
+              ),
+            ),
+          );
+        });
+  }
+
   @override
   void dispose() {
     _timer?.cancel();
@@ -77,7 +117,41 @@ class _PulseRateState extends State<PulseRate>
     return Scaffold(
       backgroundColor: const Color(0xffFFF8F8),
       appBar: AppBar(
+        toolbarHeight: 65,
+        centerTitle: true,
         elevation: 0,
+        title: Transform(
+          transform: Matrix4.translationValues(110.0, 0.0, 0.0),
+          child: FlutterRipple(
+            radius: 30.0,
+            rippleColor: Colors.lightGreenAccent,
+            child: InkWell(
+              onTap: () {
+                showHow();
+              },
+              child: Tooltip(
+                decoration: const BoxDecoration(
+                  borderRadius: BorderRadius.all(Radius.circular(8)),
+                  gradient:
+                      LinearGradient(colors: <Color>[Colors.amber, Colors.red]),
+                ),
+                message: 'How To Use',
+                child: Container(
+                  height: 45,
+                  width: 45,
+                  decoration: const BoxDecoration(boxShadow: [
+                    BoxShadow(
+                        offset: Offset.zero, blurRadius: 3, spreadRadius: -1)
+                  ], shape: BoxShape.circle, color: Colors.greenAccent),
+                  child: const Icon(
+                    Icons.question_mark_rounded,
+                    size: 30,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
         backgroundColor: const Color(0xffFFF8F8),
         leading: IconButton(
             onPressed: () {
@@ -161,7 +235,13 @@ class _PulseRateState extends State<PulseRate>
                     color: const Color.fromARGB(255, 52, 73, 94), fontSize: 35),
               ),
             ),
-          )
+          ),
+          const SizedBox(height: 30),
+          Container(
+              alignment: Alignment.center,
+              child: Text(message,
+                  style: GoogleFonts.fanwoodText(
+                      color: Colors.redAccent, fontSize: 27))),
         ],
       ),
       bottomNavigationBar: BottomAppBar(
@@ -303,6 +383,15 @@ class _PulseRateState extends State<PulseRate>
       if (_counter > 0) {
         _bpm = _bpm / _counter;
         print(_bpm);
+        if (_bpm >= 175) {
+          setState(() {
+            message = 'Tip: Place your finger properly';
+          });
+        } else {
+          setState(() {
+            message = '';
+          });
+        }
         setState(() {
           this._bpm = _bpm
               .toInt(); //((1 - _alpha) * this._bpm + _alpha * _bpm).toInt();
