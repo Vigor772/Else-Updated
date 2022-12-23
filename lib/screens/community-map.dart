@@ -111,14 +111,14 @@ class _CommunityState extends State<Community> {
     Uint8List emergencyMark = await emergencyMarker();
     var emergencyMarkers = await FirebaseFirestore.instance
         .collection('emergency')
-        .where('active', isEqualTo: false)
+        .where('active', isEqualTo: true)
         .get();
     return setState(() {
       for (var snapshots in emergencyMarkers.docs) {
         Map<String, dynamic> data = snapshots.data();
         markerList.add(RippleMarker(
             ripple: true,
-            //consumeTapEvents: false,
+            consumeTapEvents: false,
             infoWindow: InfoWindow(title: 'ID: ${data["uid"]}'),
             draggable: false,
             flat: true,
@@ -127,6 +127,7 @@ class _CommunityState extends State<Community> {
             icon: BitmapDescriptor.fromBytes(emergencyMark),
             position: LatLng(data['latitude'], data['longitude'])));
       }
+      controlCompleter.complete(_controller);
       print('marker list length: ${markerList.length}');
     });
   }
@@ -157,19 +158,20 @@ class _CommunityState extends State<Community> {
                 icon: const Icon(Icons.arrow_back, color: Colors.black))),
         body: Stack(children: [
           Animarker(
-            rippleRadius: 0.9,
-            curve: Curves.bounceOut,
-            duration: const Duration(seconds: 3),
+            rippleRadius: 1,
+            curve: Curves.bounceInOut,
+            duration: const Duration(seconds: 1),
             mapId: controlCompleter.future.then<int>(((value) => value.mapId)),
             markers: Set.of(markerList),
             child: GoogleMap(
+              markers: Set.of(markerList),
               initialCameraPosition: const CameraPosition(
                   tilt: 0,
                   zoom: 15,
                   target: LatLng(8.456500287014384, 124.64369875778976)),
               onMapCreated: (GoogleMapController controller) async {
                 _controller = controller;
-                controlCompleter.complete(_controller);
+                //controlCompleter.complete(_controller);
               },
             ),
           ),
